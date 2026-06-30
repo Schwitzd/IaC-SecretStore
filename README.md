@@ -125,51 +125,51 @@ Using the GitOps repository deploy OpenTofu on the farm cluster.
 
 ### Remote clusters
 
-**1.** Deploy a dedicated ServiceAccount with `system:auth-delegator` permissions on the remote cluster so OpenBao can perform Kubernetes TokenReview operations to validate workload JWTs.
+1. Deploy a dedicated ServiceAccount with `system:auth-delegator` permissions on the remote cluster so OpenBao can perform Kubernetes TokenReview operations to validate workload JWTs.
 
-```yaml
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: sa-openbao-tokenreview
-  namespace: secrets
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: crb-openbao-tokenreview
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: system:auth-delegator
-subjects:
-  - kind: ServiceAccount
-    name: sa-openbao-tokenreview
-    namespace: secrets
-```
+    ```yaml
+    ---
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: sa-openbao-tokenreview
+      namespace: secrets
+    ---
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      name: crb-openbao-tokenreview
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: system:auth-delegator
+    subjects:
+      - kind: ServiceAccount
+        name: sa-openbao-tokenreview
+        namespace: secrets
+    ```
 
-**2.** Mint a long-lived JWT using the Kubernetes TokenRequest API. OpenBao will use this token to authenticate to the remote cluster’s Kubernetes API when performing TokenReview operations.
+1. Mint a long-lived JWT using the Kubernetes TokenRequest API. OpenBao will use this token to authenticate to the remote cluster’s Kubernetes API when performing TokenReview operations.
 
-```sh
-kubectl -n secrets create token sa-openbao-tokenreview --duration=8760h
-```
+    ```sh
+    kubectl -n secrets create token sa-openbao-tokenreview --duration=8760h
+    ```
 
-**3.** Store the minted token alongside the cluster CA certificate and API URL in OpenBao at `remote-clusters/<cluster>`.
+1. Store the minted token alongside the cluster CA certificate and API URL in OpenBao at `remote-clusters/<cluster>`.
 
-```sh
-bao kv put remote-clusters/vps \
-  url="https://<vps-api-server>:6443" \
-  ca_cert="<base64-pem-ca>" \
-  reviewer_jwt="<token-from-step-2>"
-```
+    ```sh
+    bao kv put remote-clusters/vps \
+      url="https://<vps-api-server>:6443" \
+      ca_cert="<base64-pem-ca>" \
+      reviewer_jwt="<token-from-step-2>"
+    ```
 
-**4.** Apply the remote Terraform module to create the `kubernetes-<cluster>` auth backend in OpenBao, configure TokenReview with the stored JWT, and create the ESO role.
+1. Apply the remote Terraform module to create the `kubernetes-<cluster>` auth backend in OpenBao, configure TokenReview with the stored JWT, and create the ESO role.
 
-```sh
-cd terraform/remote
-tofu apply --var-file=variables.tfvars --var-file=variables_private.tfvars
-```
+    ```sh
+    cd terraform/remote
+    tofu apply --var-file=variables.tfvars --var-file=variables_private.tfvars
+    ```
 
 ## Secrets structure
 
