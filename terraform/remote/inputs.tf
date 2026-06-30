@@ -1,3 +1,14 @@
+variable "openbao_address" {
+  description = "OpenBao server address."
+  type        = string
+}
+
+variable "openbao_token" {
+  description = "OpenBao API token."
+  type        = string
+  sensitive   = true
+}
+
 variable "cluster_namespaces" {
   description = "Per-cluster namespaces — used to derive remote clusters and their policies."
   type        = map(list(string))
@@ -36,10 +47,4 @@ variable "remote_clusters_mount" {
   description = "KV v2 mount path where remote cluster auth configs are stored (managed by the farm module)."
   type        = string
   default     = "remote-clusters"
-}
-
-variable "remote_clusters_path" {
-  description = "Path prefix under remote_clusters_mount for per-cluster auth configs."
-  type        = string
-  default     = "clusters"
 }

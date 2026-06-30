@@ -14,7 +14,11 @@ locals {
     for cluster in keys(local.remote_clusters) : cluster => {
       kubernetes_host    = data.vault_kv_secret_v2.kubernetes_auth[cluster].data["url"]
       kubernetes_ca_cert = data.vault_kv_secret_v2.kubernetes_auth[cluster].data["ca_cert"]
-      token_reviewer_jwt = data.vault_kv_secret_v2.kubernetes_auth[cluster].data["reviewer_jwt"]
     }
+  }
+
+  kubernetes_auth_jwt = {
+    for cluster in keys(local.remote_clusters) :
+    cluster => ephemeral.vault_kv_secret_v2.kubernetes_auth_jwt[cluster].data["reviewer_jwt"]
   }
 }

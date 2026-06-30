@@ -9,9 +9,9 @@ resource "vault_kubernetes_auth_backend_config" "kubernetes" {
   for_each = local.kubernetes_auth_config
 
   backend            = local.kubernetes_auth_backend_paths[each.key]
-  kubernetes_host    = each.value.kubernetes_host
-  kubernetes_ca_cert = each.value.kubernetes_ca_cert
-  token_reviewer_jwt = each.value.token_reviewer_jwt
+  kubernetes_host       = each.value.kubernetes_host
+  kubernetes_ca_cert    = each.value.kubernetes_ca_cert
+  token_reviewer_jwt_wo = local.kubernetes_auth_jwt[each.key]
 
   depends_on = [vault_auth_backend.kubernetes]
 }

@@ -13,6 +13,13 @@ Inside the `terraform/farm` folder, create a file named `variables_private.tfvar
 ```hcl
 subscription_id = "<your-subscription-id>"
 tenant_id = "<your-tenant-id>"
+openbao_address = "<openbao-url>"
+```
+
+Inside the `terraform/remote` folder, create a file named `variables_private.tfvars` with the following structure:
+
+```hcl
+openbao_address = "<openbao-url>"
 ```
 
 ## Architecture
@@ -118,8 +125,7 @@ Using the GitOps repository deploy OpenTofu on the farm cluster.
 
 ### Remote clusters
 
-For each remote cluster, a dedicated ServiceAccount must be created to allow OpenBao to perform Kubernetes TokenReview operations.
-This ServiceAccount is granted the minimum required RBAC permissions (`system:auth-delegator`) so OpenBao can validate ServiceAccount JWTs presented by workloads in that cluster during Kubernetes authentication.
+**1.** Deploy a dedicated ServiceAccount with `system:auth-delegator` permissions on the remote cluster so OpenBao can perform Kubernetes TokenReview operations to validate workload JWTs.
 
 ```yaml
 ---
@@ -143,10 +149,26 @@ subjects:
     namespace: secrets
 ```
 
-Once the TokenReviewer ServiceAccount is in place, a JWT must be minted using the Kubernetes TokenRequest API. This token is used by OpenBao to authenticate against the remote cluster’s Kubernetes API when performing TokenReview operations.
+**2.** Mint a long-lived JWT using the Kubernetes TokenRequest API. OpenBao will use this token to authenticate to the remote cluster’s Kubernetes API when performing TokenReview operations.
 
 ```sh
 kubectl -n secrets create token sa-openbao-tokenreview --duration=8760h
+```
+
+**3.** Store the minted token alongside the cluster CA certificate and API URL in OpenBao at `remote-clusters/<cluster>`.
+
+```sh
+bao kv put remote-clusters/vps \
+  url="https://<vps-api-server>:6443" \
+  ca_cert="<base64-pem-ca>" \
+  reviewer_jwt="<token-from-step-2>"
+```
+
+**4.** Apply the remote Terraform module to create the `kubernetes-<cluster>` auth backend in OpenBao, configure TokenReview with the stored JWT, and create the ESO role.
+
+```sh
+cd terraform/remote
+tofu apply --var-file=variables.tfvars --var-file=variables_private.tfvars
 ```
 
 ## Secrets structure
